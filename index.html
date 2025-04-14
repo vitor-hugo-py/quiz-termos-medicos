@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Termos Médicos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Styles (can be mixed with Tailwind) */
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column; /* Ensure footer stays at bottom */
+            min-height: 100vh; /* Full height */
+        }
+        .container {
+            flex-grow: 1; /* Allow container to grow and push footer down */
+        }
+        /* Style for correct/incorrect button feedback */
+        .correct-answer {
+            background-color: #2ecc71 !important; /* Green */
+            color: white !important;
+            border-color: #2ecc71 !important;
+            transform: scale(1.02);
+        }
+        .incorrect-answer {
+            background-color: #e74c3c !important; /* Red */
+            color: white !important;
+            border-color: #e74c3c !important;
+            opacity: 0.7;
+        }
+        .challenge-indicator {
+             color: #f39c12; /* Orange/Amber */
+             font-weight: 700;
+             animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        /* Ensure buttons keep consistent height */
+        .option-button {
+            min-height: 50px; /* Adjust as needed */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Hide elements */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-indigo-200 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-3xl">
+        <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8">
+
+            <h1 class="text-3xl sm:text-4xl font-bold text-center text-indigo-700 mb-6">Quiz de Termos Médicos</h1>
+
+            <div id="score-area" class="flex justify-between items-center text-lg bg-gray-100 p-4 rounded-lg mb-4 shadow-inner">
+                <span class="font-semibold">Pontuação: <span id="score" class="text-indigo-600">0</span></span>
+                <span id="question-info" class="text-gray-600">Pergunta: 1</span>
+            </div>
+
+            <div id="challenge-indicator" class="text-center text-xl mb-4 min-h-[30px]">
+                </div>
+
+            <div id="question-area" class="bg-indigo-50 p-5 rounded-lg mb-6 shadow min-h-[100px] flex items-center justify-center">
+                <p id="definition-text" class="text-center text-lg sm:text-xl text-gray-700 leading-relaxed">Carregando definição...</p>
+            </div>
+
+            <div id="options-area" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                </div>
+
+            <div id="feedback-area" class="text-center min-h-[50px] mb-6">
+                 <p id="feedback-text" class="text-xl font-semibold"></p>
+                 <button id="next-button" class="hidden mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-200">Próxima Pergunta</button>
+            </div>
+
+             <div id="final-score-area" class="hidden text-center bg-gray-100 p-6 rounded-lg shadow-inner">
+                <h2 class="text-2xl font-bold text-indigo-700 mb-4">Fim de Jogo!</h2>
+                <p class="text-xl mb-4">Sua pontuação final é: <span id="final-score" class="font-bold text-indigo-600">0</span></p>
+                <button id="restart-button" class="px-8 py-3 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition duration-200 text-lg">Jogar Novamente</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 text-gray-600 mt-auto">
+        Feito com ❤️ por Vitor Hugo
+    </footer>
+
+    <script>
+        // --- Game Data (Extracted from PDF Text) ---
+        const medicalTermsText = `
+            Adenomegalia = crescimento de linfonodos
+            Amaurose = perda total da visão
+            Ambliopia = perda parcial da visão
+            Amenorréia = ausência de menstruação por um período de tempo maior do que três ciclos prévios
+            Anosmia = abolição do olfato
+            Anúria = diurese < 100 ml em 24 horas
+            Artralgia = dor articular
+            Artrite = processo inflamatório das articulações
+            Astenia = sensação de debilidade física, quase sempre acompanhada de mal estar indefinido que só melhora com o repouso.
+            Briquismo = bruxismo = ato de ranger os dentes
+            Cacosmia = sentir mau cheiro
+            Caibras = contrações involuntárias e dolorosas de um músculo esquelético
+            Calafrios = sensação passageira de frio com ereção dos pêlos e arrepiamento da pele. "arrepios de frio"
+            Caquexia = estado de extrema magreza com comprometimento do estado geral do paciente (ex: doenças consuntivas)
+            Cefaléia = dor de cabeça
+            Cianose = coloração azulada da pele e das mucosas devido ao aumento da Hb reduzida no sangue capilar
+            Cloropsia = visão verde
+            Colúria = urina cor de Coca-Cola
+            Cornagem = estridor na altura da laringe. Dificuldade inspiratória por redução do calibre das vias respiratórias superiores
+            Corrimento uretral = secreção que sai pelo meato da uretra
+            Diplopia = visão dupla
+            Disacusia = perda da capacidade auditiva, que pode ser moderada (hipoacusia), acentuada (surdez) ou total (anacusia)
+            Disfagia = dificuldade de deglutir
+            Disfonias = alterações da voz, que podem ser desde discreta rouquidão até Ausência da voz ou afonia
+            Disfunção erétil = impotência sexual
+            Dispareunia = dor durante o coito (mulher)
+            Dispepsia = sintomas relacionados à parte alta do abdome (Síndrome dispéptica: desconforto ou dor epigástrica, empanzinamento)
+            Dispnéia paroxística noturna = dificuldade de respirar que ocorre depois que o paciente já dormiu algumas horas.
+            Dispnéia = dificuldade para respirar (pode ser relacionada aos pequenos, médios e grandes esforços, pode ser de repouso)
+            Disúria = micção associada à sensação de dor, queimação ou desconforto
+            Edema = inchaço
+            Enoftalmia = globo ocular afundado para dentro da órbita
+            Enterorragia = eliminação de sangue vivo pelo ânus (grande quantidade)
+            Enurese noturna = emissão involuntária de urina durante o sono
+            Epistaxe = hemorragia nasal
+            Eructação = arroto
+            Escotomas = área de cegueira parcial ou total, dentro de um campo visual.
+            Esplenomegalia = crescimento do baço
+            Esteatorréia = aumento da quantidade de gordura excretada nas fezes
+            Estrangúria = emissão lenta e dolorosa de urina
+            Exoftalmia = protusão do globo ocular
+            Expectoração = escarro
+            Fadiga = sensação de cansaço ao realizar pequenos esforços
+            Flatulência = acúmulo e eliminação de gases no tubo digestivo
+            Fotofobia = hipersensibilidade à luz
+            Galactorréia = produção de leite fora do período puerperal ou de lactação. Pode ocorrer em homens
+            Geofagia = desejo de comer terra
+            Halitose = mau halito
+            Hematêmese = vômito com sangue
+            Hematoquezia = sangue eliminado pelo reto vermelho-vivo em pequena quantidade, de origem proctológica
+            Hematúria = presença de sangue na urina
+            Hemeralopia = baixa acuidade visual quando a intensidade luminosa diminui
+            Hemiplegia = paralisia de um lado do corpo (direito ou esquerdo)
+            Hemoptise = eliminação com a tosse de sangue proveniente da traquéia, brônquios ou pulmões
+            Hemospermia = presença de sangue no esperma
+            Hepatomegalia = crescimento do fígado
+            Hiperosmia = aumento do olfato
+            Hiposmia = diminuição do olfato
+            lantopsia = visão violeta
+            Icterícia = coloração amarelada da pele e das mucosas devido à impregnação dos tecidos por pigmentos biliares
+            Inapetência ou anorexia = apetite diminuído
+            Lacrimejamento = excesso de secreção de lágrima
+            Lipotímia ou pré-sincope = sensação de desmaio ou perda parcial da consciência
+            Mastalgia = dor nas mamas
+            Melena = eliminação de sangue digerido pelo ânus, fezes enegrecidas
+            Menarca = primeira menstruação
+            Menopausa = última menstruação
+            Menorragia = excessiva perda de sangue durante o período menstrual
+            Metrorragia = sangramento uterino sem as características da menstruação normal
+            Midriase = pupilas dilatadas
+            Miose = pupilas contraídas
+            Náuseas = enjôo
+            Nistagmo = movimentos repetitivos e rítmicos dos olhos
+            Noctúria = necessidade de esvaziar a bexiga à noite por uma alteração do ritmo circadiano da diurese
+            Obstipação ou onstipação intestinal = "prisão de ventre" "intestino preso"
+            Odinofagia = dor à deglutição
+            Oligúria = redução do volume urinário (<500 ml/dia)
+            Ortopnéia = dispnéia que impede o paciente de ficar deitado e o obriga a sentar ou a ficar de pé para ter alívio
+            Otorragia = perda de sangue pelo canal auditivo
+            Otorréia = secreção auditiva
+            Palpitações = percepção incômoda dos batimentos cardíacos
+            Paraplegia = paralisia dos membros inferiores
+            Parestesia = sensação de formigamento e dormência
+            Pigarro = hipersecreção de muco que se acumula e adere na parede posterior da faringe, no vestibulo laringeo e nas cordas vocais
+            Pirose = sensação de queimação retroesternal
+            Polaciúria = aumento do número de micções, sem aumento do volume urinário
+            Polifagia ou hiperorexia = apetite aumentado
+            Poliúria = aumento do volume urinário (>2500 ml/dia)
+            Prurido = "coceira"
+            Regurgitação = volta do alimento ou de secreções gástricas à cavidade bucal, sem antecedentes de náuseas
+            Retenção urinária = incapacidade da bexiga de esvaziar-se parcial ou completamente
+            Rinorréia ou corrimento nasal = secreção nasal
+            Sialose ou sialorréia ou ptialismo = produção excessiva de secreção salivar
+            Sibilância = chiado ou chieira, ruído percebido na respiração
+            Síncope = desmaio, perda súbita e transitória da consciência
+            Sonambulismo = pessoa caminha enquanto dorme
+            Sonilóquio = pessoa que emite sons durante o sono ou forma frases sem sentido
+            Sudorese ou diaforese = eliminação abundante de suor
+            Tetraplegia = paralisia dos membros superiores e inferiores
+            Tiragem = aumento da retração dos espaços intercostais durante as fases da respiração
+            Tosse produtiva = tosse com expectoração
+            Urgência miccional = necessidade súbita e imperiosa de urinar
+            Vertigem = sensação de se estar girando em torno dos objetos ou os objetos girando em torno de si
+            Vômica = eliminação mais ou menos brusca, através da glote, de uma quantidade abundante de pus (ou raramente líquido de aspecto mucóide ou seroso)
+            Xantopsia = visão amarelada
+            Zumbidos = percepção de ruídos sem que haja estímulo exterior
+        `;
+
+        // --- Game Configuration ---
+        const NUM_CHOICES = 4; // Number of answer choices
+        const NORMAL_POINTS = 10;
+        const CHALLENGE_POINTS = 25;
+        const CHALLENGE_FREQUENCY = 5; // Every 5 questions is a challenge
+
+        // --- DOM Elements ---
+        const scoreEl = document.getElementById('score');
+        const questionInfoEl = document.getElementById('question-info');
+        const challengeIndicatorEl = document.getElementById('challenge-indicator');
+        const definitionTextEl = document.getElementById('definition-text');
+        const optionsAreaEl = document.getElementById('options-area');
+        const feedbackTextEl = document.getElementById('feedback-text');
+        const nextButtonEl = document.getElementById('next-button');
+        const finalScoreAreaEl = document.getElementById('final-score-area');
+        const finalScoreEl = document.getElementById('final-score');
+        const restartButtonEl = document.getElementById('restart-button');
+        const questionAreaEl = document.getElementById('question-area'); // To hide at the end
+
+        // --- Game State Variables ---
+        let termsData = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let shuffledTerms = [];
+        let currentCorrectTerm = '';
+        let isChallenge = false;
+        let acceptingAnswers = true; // Prevent clicking after answer
+
+        // --- Utility Functions ---
+        /**
+         * Parses the raw text into an array of term objects.
+         * Handles variations in formatting.
+         */
+        function parseTerms(text) {
+            const lines = text.trim().split('\n');
+            const terms = [];
+            let currentDef = [];
+            let potentialTerm = null;
+
+            lines.forEach(line => {
+                line = line.trim().replace(/^•\s*/, ''); // Remove leading bullet points and trim
+
+                if (!line) return; // Skip empty lines
+
+                const parts = line.split(/\s*=\s*(.*)/s); // Split on the first '=', capture the rest
+
+                if (parts.length > 1 && parts[1].trim() !== "") { // Likely a new term line
+                    // Save previous term if exists
+                    if (potentialTerm) {
+                         terms.push({ term: potentialTerm, definition: currentDef.join(' ').trim() });
+                    }
+                    // Process new term (handle Term1 = Term2 = Definition cases)
+                    let termPart = parts[0].trim();
+                    // Take the first term if multiple are given with '=' or '/'
+                    potentialTerm = termPart.split('/')[0].split('=')[0].trim();
+                    currentDef = [parts[1].trim()]; // Start new definition
+                } else if (potentialTerm) {
+                    // Continuation of the previous definition
+                    currentDef.push(line);
+                }
+            });
+             // Add the last term
+            if (potentialTerm) {
+                terms.push({ term: potentialTerm, definition: currentDef.join(' ').trim() });
+            }
+
+            // Filter out entries with missing term or definition
+            return terms.filter(t => t.term && t.definition);
+        }
+
+
+        /**
+         * Shuffles an array in place using the Fisher-Yates algorithm.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+        }
+
+        // --- Game Logic Functions ---
+
+        /**
+         * Starts or restarts the game.
+         */
+        function startGame() {
+            termsData = parseTerms(medicalTermsText);
+            if (termsData.length < NUM_CHOICES) {
+                 definitionTextEl.textContent = `Erro: São necessários pelo menos ${NUM_CHOICES} termos médicos no arquivo para jogar.`;
+                 optionsAreaEl.innerHTML = ''; // Clear options if error
+                 return; // Stop game initialization
+            }
+
+            score = 0;
+            currentQuestionIndex = 0;
+            shuffledTerms = [...termsData]; // Create a copy
+            shuffleArray(shuffledTerms);
+
+            // Reset UI elements
+            scoreEl.textContent = score;
+            finalScoreAreaEl.classList.add('hidden');
+            questionAreaEl.classList.remove('hidden'); // Show question area
+            optionsAreaEl.classList.remove('hidden'); // Show options area
+            feedbackTextEl.textContent = '';
+            nextButtonEl.classList.add('hidden');
+            challengeIndicatorEl.textContent = ''; // Clear challenge text
+
+            displayNextQuestion();
+        }
+
+        /**
+         * Displays the next question or ends the game.
+         */
+        function displayNextQuestion() {
+            if (currentQuestionIndex >= shuffledTerms.length) {
+                endGame();
+                return;
+            }
+
+            acceptingAnswers = true; // Allow answers for the new question
+            const currentQuestion = shuffledTerms[currentQuestionIndex];
+            currentCorrectTerm = currentQuestion.term;
+
+            // Determine if it's a challenge
+            isChallenge = (currentQuestionIndex + 1) % CHALLENGE_FREQUENCY === 0;
+            challengeIndicatorEl.textContent = isChallenge ? '✨ Pergunta Desafio! ✨' : '';
+            challengeIndicatorEl.classList.toggle('challenge-indicator', isChallenge); // Add/remove pulse class
+
+            // Display definition
+            definitionTextEl.textContent = currentQuestion.definition;
+            questionInfoEl.textContent = `Pergunta: ${currentQuestionIndex + 1} / ${shuffledTerms.length}`;
+
+            // Generate choices
+            const choices = [currentCorrectTerm];
+            const incorrectTerms = termsData.filter(term => term.term !== currentCorrectTerm);
+            shuffleArray(incorrectTerms);
+            for (let i = 0; choices.length < NUM_CHOICES && i < incorrectTerms.length; i++) {
+                choices.push(incorrectTerms[i].term);
+            }
+            shuffleArray(choices); // Shuffle the final choices
+
+            // Display choices as buttons
+            optionsAreaEl.innerHTML = ''; // Clear previous buttons
+            feedbackTextEl.textContent = ''; // Clear previous feedback
+            nextButtonEl.classList.add('hidden'); // Hide next button
+
+            choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.textContent = choice;
+                // Tailwind classes for styling
+                button.className = 'option-button bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105';
+                button.addEventListener('click', () => handleAnswer(choice, button));
+                optionsAreaEl.appendChild(button);
+            });
+
+            currentQuestionIndex++;
+        }
+
+        /**
+         * Handles the user's answer selection.
+         */
+        function handleAnswer(selectedTerm, clickedButton) {
+            if (!acceptingAnswers) return; // Don't process if already answered
+            acceptingAnswers = false; // Prevent further clicks
+
+            const correct = selectedTerm === currentCorrectTerm;
+            const pointsEarned = correct ? (isChallenge ? CHALLENGE_POINTS : NORMAL_POINTS) : 0;
+
+            // Update score
+            score += pointsEarned;
+            scoreEl.textContent = score;
+
+            // Provide feedback
+            feedbackTextEl.textContent = correct ? `Correto! +${pointsEarned} pontos` : `Incorreto. A resposta era: ${currentCorrectTerm}`;
+            feedbackTextEl.className = correct ? 'text-green-600 text-xl font-semibold' : 'text-red-600 text-xl font-semibold';
+
+            // Visually highlight buttons
+            Array.from(optionsAreaEl.children).forEach(button => {
+                button.disabled = true; // Disable all buttons
+                if (button.textContent === currentCorrectTerm) {
+                    button.classList.add('correct-answer'); // Highlight correct one green
+                } else if (button === clickedButton) {
+                    button.classList.add('incorrect-answer'); // Highlight selected incorrect one red
+                } else {
+                     button.style.opacity = '0.6'; // Dim other incorrect buttons
+                }
+            });
+
+            // Show next button after a short delay
+            setTimeout(() => {
+                 nextButtonEl.classList.remove('hidden');
+            }, 1000); // Show after 1 second
+        }
+
+         /**
+         * Ends the game and displays the final score.
+         */
+        function endGame() {
+            questionAreaEl.classList.add('hidden'); // Hide question area
+            optionsAreaEl.classList.add('hidden'); // Hide options
+            feedbackTextEl.textContent = ''; // Clear feedback
+            nextButtonEl.classList.add('hidden'); // Hide next button
+            challengeIndicatorEl.textContent = ''; // Clear challenge text
+
+            finalScoreEl.textContent = score;
+            finalScoreAreaEl.classList.remove('hidden'); // Show final score section
+        }
+
+        // --- Event Listeners ---
+        nextButtonEl.addEventListener('click', displayNextQuestion);
+        restartButtonEl.addEventListener('click', startGame);
+
+        // --- Initial Game Start ---
+        // Wait for the DOM to be fully loaded before starting
+        document.addEventListener('DOMContentLoaded', startGame);
+
+    </script>
+
+</body>
+</html>
