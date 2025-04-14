@@ -3,83 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz de Termos Médicos</title>
+    <title>Quiz Avançado de Termos Médicos</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom Styles (can be mixed with Tailwind) */
+        /* Custom Styles */
         body {
             font-family: 'Poppins', sans-serif;
             display: flex;
-            flex-direction: column; /* Ensure footer stays at bottom */
-            min-height: 100vh; /* Full height */
+            flex-direction: column;
+            min-height: 100vh;
         }
-        .container {
-            flex-grow: 1; /* Allow container to grow and push footer down */
-        }
-        /* Style for correct/incorrect button feedback */
-        .correct-answer {
-            background-color: #2ecc71 !important; /* Green */
-            color: white !important;
-            border-color: #2ecc71 !important;
-            transform: scale(1.02);
-        }
-        .incorrect-answer {
-            background-color: #e74c3c !important; /* Red */
-            color: white !important;
-            border-color: #e74c3c !important;
-            opacity: 0.7;
-        }
+        .container { flex-grow: 1; }
+        .main-card { transition: box-shadow 0.5s ease-in-out, border-color 0.5s ease-in-out; }
+
+        /* --- General Feedback Styles --- */
+        .correct-answer-bg { background-color: #2ecc71 !important; color: white !important; border-color: #27ae60 !important; }
+        .incorrect-answer-bg { background-color: #e74c3c !important; color: white !important; border-color: #c0392b !important; opacity: 0.8; }
+        .feedback-correct { color: #27ae60; }
+        .feedback-incorrect { color: #c0392b; }
+
+        /* --- Quiz Button Feedback --- */
+        .option-button.correct-answer { transform: scale(1.02); }
+        .option-button.incorrect-answer { opacity: 0.7; }
+
+        /* --- Challenge Indicator & Animation --- */
         .challenge-indicator {
              color: #f39c12; /* Orange/Amber */
              font-weight: 700;
-             animation: pulse 1.5s infinite;
+             animation: pulse-text 1.5s infinite alternate;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        @keyframes pulse-text {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.05); opacity: 1; }
         }
-        /* Ensure buttons keep consistent height */
-        .option-button {
-            min-height: 50px; /* Adjust as needed */
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .challenge-active { /* Extravagant animation for challenge rounds */
+            box-shadow: 0 0 25px 5px rgba(243, 156, 18, 0.6); /* Glowing shadow */
+            border: 2px solid #f39c12;
+            animation: pulse-border 1.5s infinite alternate;
         }
+        @keyframes pulse-border {
+            from { box-shadow: 0 0 15px 3px rgba(243, 156, 18, 0.4); border-color: #f39c12; }
+            to { box-shadow: 0 0 30px 8px rgba(243, 156, 18, 0.7); border-color: #f1c40f; }
+        }
+
+        /* --- Drag and Drop Styles (General) --- */
+        .draggable-item { cursor: grab; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .draggable-item:active { cursor: grabbing; transform: scale(1.05); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); z-index: 10; }
+        .drop-zone { transition: background-color 0.2s ease, border-color 0.2s ease; border: 2px dashed #a5b4fc; }
+        .drop-zone.drag-over { background-color: #e0e7ff; border-color: #6366f1; }
+        .drop-zone.dropped { border-style: solid; border-color: #9ca3af; background-color: #f3f4f6; }
+        .drop-zone.correct-drop { border-color: #2ecc71; background-color: #e8f8f5; }
+        .drop-zone.incorrect-drop { border-color: #e74c3c; background-color: #fdedec; }
+        .dragging-source { opacity: 0.3 !important; } /* Make source item faint */
+
+        /* --- Term->Def Drag Drop Specific --- */
+        .term-bank-item { background-color: #3b82f6; color: white; } /* Blue-500 */
+        .term-bank-item:hover { background-color: #2563eb; } /* Blue-600 */
+        .term-bank-item.dropped-term { opacity: 0.5; cursor: default; }
+        .drop-zone-def { min-height: 60px; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .drop-zone-def .draggable-item { width: 95%; margin: auto; } /* Fit dropped term */
+
+        /* --- System Match Drag Drop Specific --- */
+        .system-drop-zone { min-height: 70px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .system-drop-zone .draggable-item { margin-top: 5px; } /* Space for dropped term */
+
+        /* --- Anamnesis Order Specific --- */
+        .anamnesis-list { list-style: none; padding: 0; }
+        .anamnesis-item { border: 1px solid #d1d5db; background-color: #f9fafb; margin-bottom: 5px; padding: 10px; border-radius: 6px; }
+        .anamnesis-item.drag-over-item { border-top: 3px solid #6366f1; } /* Indicator for reorder drop */
+        .anamnesis-item.correct-order { border-left: 5px solid #2ecc71; }
+        .anamnesis-item.incorrect-order { border-left: 5px solid #e74c3c; }
+
+
         /* Hide elements */
-        .hidden {
-            display: none;
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-indigo-200 text-gray-800">
 
     <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-3xl">
-        <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8">
+        <div id="main-card" class="main-card bg-white rounded-xl shadow-2xl p-6 sm:p-8 border-2 border-transparent">
 
-            <h1 class="text-3xl sm:text-4xl font-bold text-center text-indigo-700 mb-6">Quiz de Termos Médicos</h1>
+            <h1 class="text-3xl sm:text-4xl font-bold text-center text-indigo-700 mb-6">Quiz Avançado de Termos Médicos</h1>
 
             <div id="score-area" class="flex justify-between items-center text-lg bg-gray-100 p-4 rounded-lg mb-4 shadow-inner">
                 <span class="font-semibold">Pontuação: <span id="score" class="text-indigo-600">0</span></span>
-                <span id="question-info" class="text-gray-600">Pergunta: 1</span>
+                <span id="round-info" class="text-gray-600">Rodada: 1</span>
             </div>
 
-            <div id="challenge-indicator" class="text-center text-xl mb-4 min-h-[30px]">
+            <div id="challenge-indicator" class="text-center text-xl mb-4 min-h-[30px]"></div>
+
+            <div id="game-content-area">
+
+                <div id="quiz-mode-area" class="hidden">
+                    <div id="question-area" class="bg-indigo-50 p-5 rounded-lg mb-6 shadow min-h-[100px] flex items-center justify-center">
+                        <p id="definition-text" class="text-center text-lg sm:text-xl text-gray-700 leading-relaxed">Carregando definição...</p>
+                    </div>
+                    <div id="options-area" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"></div>
                 </div>
 
-            <div id="question-area" class="bg-indigo-50 p-5 rounded-lg mb-6 shadow min-h-[100px] flex items-center justify-center">
-                <p id="definition-text" class="text-center text-lg sm:text-xl text-gray-700 leading-relaxed">Carregando definição...</p>
-            </div>
-
-            <div id="options-area" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div id="drag-drop-mode-area" class="hidden">
+                    <p class="text-center text-lg text-gray-700 mb-4">Arraste o termo correto para a sua definição correspondente.</p>
+                    <div id="definitions-container" class="space-y-4 mb-6"></div>
+                    <h3 class="text-center font-semibold text-gray-600 mb-2">Banco de Termos:</h3>
+                    <div id="terms-bank" class="flex flex-wrap justify-center items-center gap-3 p-4 bg-gray-100 rounded-lg shadow-inner min-h-[80px]"></div>
+                     <div class="text-center mt-4">
+                         <button id="check-drag-drop-button" class="hidden px-6 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition duration-200">Verificar Respostas</button>
+                     </div>
                 </div>
 
-            <div id="feedback-area" class="text-center min-h-[50px] mb-6">
+                <div id="system-match-mode-area" class="hidden">
+                     <p class="text-center text-lg text-gray-700 mb-2 font-semibold">Desafio: Sistema Corporal!</p>
+                     <p class="text-center text-gray-600 mb-4">Arraste o termo abaixo para o sistema corporal correto.</p>
+                     <div id="system-match-term" class="draggable-item bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-5 rounded-lg shadow cursor-grab transition duration-150 inline-block mx-auto mb-6 text-center">
+                         </div>
+                     <div id="system-drop-zones" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                         </div>
+                     </div>
+
+                <div id="anamnesis-order-mode-area" class="hidden">
+                    <p class="text-center text-lg text-gray-700 mb-2 font-semibold">Desafio: Ordem da Anamnese!</p>
+                    <p class="text-center text-gray-600 mb-4">Arraste e solte os itens para colocá-los na ordem correta da anamnese.</p>
+                    <ul id="anamnesis-list" class="anamnesis-list mb-6 p-4 bg-gray-50 rounded-lg shadow-inner">
+                        </ul>
+                    <div class="text-center mt-4">
+                         <button id="check-anamnesis-button" class="px-6 py-2 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 transition duration-200">Verificar Ordem</button>
+                     </div>
+                </div>
+
+            </div> <div id="feedback-area" class="text-center min-h-[50px] mb-6">
                  <p id="feedback-text" class="text-xl font-semibold"></p>
-                 <button id="next-button" class="hidden mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-200">Próxima Pergunta</button>
+                 <button id="next-button" class="hidden mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition duration-200">Próxima Rodada</button>
             </div>
 
              <div id="final-score-area" class="hidden text-center bg-gray-100 p-6 rounded-lg shadow-inner">
@@ -91,11 +148,11 @@
     </div>
 
     <footer class="text-center py-4 text-gray-600 mt-auto">
-        Feito com ❤️ por Vitor Hugo
+        Feito com ❤️ por Vitor Hugo - Versão 2.1
     </footer>
 
     <script>
-        // --- Game Data (Extracted from PDF Text) ---
+        // --- Game Data ---
         const medicalTermsText = `
             Adenomegalia = crescimento de linfonodos
             Amaurose = perda total da visão
@@ -205,221 +262,804 @@
             Acúfeno = percepção de ruídos sem que haja estímulo exterior
         `;
 
+        // --- Mapeamento Termo -> Sistema Corporal (Exemplo - EXPANDIR CONFORME NECESSÁRIO) ---
+        const termToSystemMap = {
+            "Adenomegalia": "Sistema Endócrino/Imune", // Linfonodos podem ser relacionados a ambos
+            "Amaurose": "Olhos",
+            "Ambliopia": "Olhos",
+            "Amenorréia": "Sistema Gênito-Urinário",
+            "Anosmia": "Nariz e seios paranasais",
+            "Anúria": "Sistema Gênito-Urinário",
+            "Artralgia": "Sistema Locomotor",
+            "Artrite": "Sistema Locomotor",
+            "Astenia": "Sintomas Gerais",
+            "Briquismo": "Boca e Orofaringe", // ou Sistema Nervoso/Psíquico
+            "Cacosmia": "Nariz e seios paranasais",
+            "Caibras": "Sistema Locomotor",
+            "Calafrios": "Sintomas Gerais",
+            "Caquexia": "Sintomas Gerais",
+            "Cefaléia": "Sistema Nervoso", // Ou Sintomas Gerais
+            "Cianose": "Sistema Cardiovascular/Respiratório",
+            "Colúria": "Sistema Gênito-Urinário", // Relacionado à bilirrubina (fígado/gastro também)
+            "Cornagem": "Sistema Respiratório", // Laringe
+            "Corrimento uretral": "Sistema Gênito-Urinário",
+            "Diplopia": "Olhos",
+            "Disacusia": "Ouvidos",
+            "Disfagia": "Sistema Gastrointestinal", // ou Boca/Orofaringe/Pescoço
+            "Disfonias": "Pescoço", // Cordas vocais
+            "Disfunção erétil": "Sistema Gênito-Urinário", // Ou Endócrino/Vascular
+            "Dispareunia": "Sistema Gênito-Urinário",
+            "Dispepsia": "Sistema Gastrointestinal",
+            "Dispnéia paroxística noturna": "Sistema Cardiovascular/Respiratório",
+            "Dispnéia": "Sistema Respiratório/Cardiovascular",
+            "Disúria": "Sistema Gênito-Urinário",
+            "Edema": "Sistema Cardiovascular/Gênito-Urinário/Sintomas Gerais",
+            "Enoftalmia": "Olhos",
+            "Enterorragia": "Sistema Gastrointestinal",
+            "Enurese noturna": "Sistema Gênito-Urinário", // Ou Nervoso/Psíquico
+            "Epistaxe": "Nariz e seios paranasais",
+            "Eructação": "Sistema Gastrointestinal",
+            "Escotomas": "Olhos",
+            "Esplenomegalia": "Sistema Endócrino/Imune", // Baço (pode ser considerado imune/linfático)
+            "Esteatorréia": "Sistema Gastrointestinal",
+            "Estrangúria": "Sistema Gênito-Urinário",
+            "Exoftalmia": "Olhos", // Ou Endócrino
+            "Expectoração": "Sistema Respiratório",
+            "Fadiga": "Sintomas Gerais",
+            "Flatulência": "Sistema Gastrointestinal",
+            "Fotofobia": "Olhos",
+            "Galactorréia": "Sistema Endócrino",
+            "Geofagia": "Sistema Psíquico/Gastrointestinal",
+            "Halitose": "Boca e Orofaringe", // Ou Gastrointestinal/Respiratório
+            "Hematêmese": "Sistema Gastrointestinal",
+            "Hematoquezia": "Sistema Gastrointestinal",
+            "Hematúria": "Sistema Gênito-Urinário",
+            "Hemeralopia": "Olhos",
+            "Hemiplegia": "Sistema Nervoso",
+            "Hemoptise": "Sistema Respiratório",
+            "Hemospermia": "Sistema Gênito-Urinário",
+            "Hepatomegalia": "Sistema Gastrointestinal",
+            "Hiperosmia": "Nariz e seios paranasais",
+            "Hiposmia": "Nariz e seios paranasais",
+            "Icterícia": "Sistema Gastrointestinal", // Fígado
+            "Inapetência ou anorexia": "Sintomas Gerais/Gastrointestinal/Psíquico",
+            "Epífora ou olhos lacrimejantes": "Olhos",
+            "Lipotímia ou pré-sincope": "Sistema Cardiovascular/Nervoso",
+            "Mastalgia": "Parede Torácica", // Mamas
+            "Melena": "Sistema Gastrointestinal",
+            "Menarca": "Sistema Gênito-Urinário",
+            "Menopausa": "Sistema Gênito-Urinário",
+            "Menorragia": "Sistema Gênito-Urinário",
+            "Metrorragia": "Sistema Gênito-Urinário",
+            "Midriase": "Olhos", // Ou Nervoso
+            "Miose": "Olhos", // Ou Nervoso
+            "Náuseas": "Sistema Gastrointestinal/Nervoso",
+            "Nistagmo": "Olhos/Ouvidos/Nervoso",
+            "Noctúria": "Sistema Gênito-Urinário",
+            "Obstipação ou onstipação intestinal": "Sistema Gastrointestinal",
+            "Odinofagia": "Boca e Orofaringe/Pescoço/Gastrointestinal",
+            "Oligúria": "Sistema Gênito-Urinário",
+            "Ortopnéia": "Sistema Cardiovascular/Respiratório",
+            "Otorragia": "Ouvidos",
+            "Otorréia": "Ouvidos",
+            "Palpitações": "Sistema Cardiovascular",
+            "Paraplegia": "Sistema Nervoso/Locomotor",
+            "Parestesia": "Sistema Nervoso",
+            "Pigarro": "Pescoço/Sistema Respiratório",
+            "Pirose": "Sistema Gastrointestinal",
+            "Polaciúria": "Sistema Gênito-Urinário",
+            "Polifagia ou hiperorexia": "Sistema Endócrino/Gastrointestinal/Psíquico",
+            "Poliúria": "Sistema Gênito-Urinário/Endócrino",
+            "Prurido": "Pele e Fâneros",
+            "Regurgitação": "Sistema Gastrointestinal",
+            "Retenção urinária": "Sistema Gênito-Urinário",
+            "Rinorréia ou corrimento nasal": "Nariz e seios paranasais",
+            "Sialose ou sialorréia ou ptialismo": "Boca e Orofaringe",
+            "Sibilância": "Sistema Respiratório",
+            "Síncope": "Sistema Cardiovascular/Nervoso",
+            "Sonambulismo": "Sistema Psíquico/Nervoso",
+            "Sonilóquio": "Sistema Psíquico/Nervoso",
+            "Sudorese ou diaforese": "Pele e Fâneros/Sintomas Gerais",
+            "Tetraplegia": "Sistema Nervoso/Locomotor",
+            "Tiragem": "Sistema Respiratório",
+            "Tosse produtiva": "Sistema Respiratório",
+            "Urgência miccional": "Sistema Gênito-Urinário",
+            "Vertigem": "Ouvidos/Sistema Nervoso",
+            "Vômica": "Sistema Respiratório",
+            "Xantopsia": "Olhos",
+            "Acúfeno": "Ouvidos" // Renomeado de Zumbidos para Acúfeno
+        };
+
+        // --- Ordem Correta da Anamnese ---
+        const anamnesisOrderCorrect = [
+            "Sintomas gerais",
+            "Pele e fâneros",
+            "Crânio",
+            "Ouvidos",
+            "Olhos",
+            "Boca e orofaringe",
+            "Nariz e seios paranasais",
+            "Pescoço",
+            "Parede torácica",
+            "Sistema respiratório",
+            "Sistema cardiovascular",
+            "Parede abdominal",
+            "Sistema gastrointestinal",
+            "Sistema gênito-urinário",
+            "Sistema locomotor",
+            "Sistema endócrino", // Adicionado "Sistema Endócrino/Imune" como opção também
+            "Sistema nervoso",
+            "Sistema psíquico"
+        ];
+        // Lista de todos os sistemas para usar como distratores ou opções
+        const allBodySystems = [...new Set(Object.values(termToSystemMap).flatMap(s => s.split('/')))].sort(); // Pega todos os sistemas únicos e ordena
+
+
         // --- Game Configuration ---
-        const NUM_CHOICES = 4; // Number of answer choices
-        const NORMAL_POINTS = 10;
-        const CHALLENGE_POINTS = 25;
-        const CHALLENGE_FREQUENCY = 5; // Every 5 questions is a challenge
+        const QUIZ_NUM_CHOICES = 4;
+        const DRAG_DROP_PAIRS = 3;
+        const DRAG_DROP_DISTRACTORS = 2;
+        const SYSTEM_MATCH_OPTIONS = 4; // Quantas opções de sistema mostrar
+        const NORMAL_POINTS = 10; // Pontos para Quiz e Termo->Definição D&D
+        const CHALLENGE_ROUND_POINTS = 30; // Pontos base para System Match e Anamnesis Order
+        const CHALLENGE_FREQUENCY = 5; // A cada X rodadas, uma é desafio
+        const GAME_MODES_NORMAL = ['quiz', 'drag_drop']; // Modos normais
+        const GAME_MODES_CHALLENGE = ['system_match', 'anamnesis_order']; // Modos de desafio
 
         // --- DOM Elements ---
+        const mainCardEl = document.getElementById('main-card');
         const scoreEl = document.getElementById('score');
-        const questionInfoEl = document.getElementById('question-info');
+        const roundInfoEl = document.getElementById('round-info');
         const challengeIndicatorEl = document.getElementById('challenge-indicator');
-        const definitionTextEl = document.getElementById('definition-text');
-        const optionsAreaEl = document.getElementById('options-area');
         const feedbackTextEl = document.getElementById('feedback-text');
         const nextButtonEl = document.getElementById('next-button');
         const finalScoreAreaEl = document.getElementById('final-score-area');
         const finalScoreEl = document.getElementById('final-score');
         const restartButtonEl = document.getElementById('restart-button');
-        const questionAreaEl = document.getElementById('question-area'); // To hide at the end
+        const gameContentAreaEl = document.getElementById('game-content-area');
+        // Mode Areas
+        const quizModeAreaEl = document.getElementById('quiz-mode-area');
+        const dragDropModeAreaEl = document.getElementById('drag-drop-mode-area');
+        const systemMatchModeAreaEl = document.getElementById('system-match-mode-area');
+        const anamnesisOrderModeAreaEl = document.getElementById('anamnesis-order-mode-area');
+        // Quiz Elements
+        const definitionTextEl = document.getElementById('definition-text');
+        const optionsAreaEl = document.getElementById('options-area');
+        // Term->Def D&D Elements
+        const definitionsContainerEl = document.getElementById('definitions-container');
+        const termsBankEl = document.getElementById('terms-bank');
+        const checkDragDropButtonEl = document.getElementById('check-drag-drop-button');
+        // System Match Elements
+        const systemMatchTermEl = document.getElementById('system-match-term');
+        const systemDropZonesEl = document.getElementById('system-drop-zones');
+        // Anamnesis Order Elements
+        const anamnesisListEl = document.getElementById('anamnesis-list');
+        const checkAnamnesisButtonEl = document.getElementById('check-anamnesis-button');
+
 
         // --- Game State Variables ---
         let termsData = [];
-        let currentQuestionIndex = 0;
+        let termsWithSystems = []; // Array filtrado de termos que têm mapeamento de sistema
+        let currentRoundIndex = 0;
         let score = 0;
         let shuffledTerms = [];
-        let currentCorrectTerm = '';
+        let currentCorrectTerm = ''; // Quiz mode correct answer
+        let currentDragDropPairs = []; // Term->Def D&D correct pairs
+        let currentSystemMatch = {}; // System Match { term: '...', correctSystem: '...' }
+        let droppedItems = {}; // Term->Def D&D state {dropZoneId: draggedTermId}
+        let systemMatchDropped = false; // System Match state
         let isChallenge = false;
-        let acceptingAnswers = true; // Prevent clicking after answer
+        let acceptingAnswers = true;
+        let currentMode = '';
+        let draggedElement = null; // Global reference for dragged element
 
         // --- Utility Functions ---
-        /**
-         * Parses the raw text into an array of term objects.
-         * Handles variations in formatting.
-         */
-        function parseTerms(text) {
-            const lines = text.trim().split('\n');
-            const terms = [];
-            let currentDef = [];
-            let potentialTerm = null;
-
-            lines.forEach(line => {
-                line = line.trim().replace(/^•\s*/, ''); // Remove leading bullet points and trim
-
-                if (!line) return; // Skip empty lines
-
-                const parts = line.split(/\s*=\s*(.*)/s); // Split on the first '=', capture the rest
-
-                if (parts.length > 1 && parts[1].trim() !== "") { // Likely a new term line
-                    // Save previous term if exists
-                    if (potentialTerm) {
-                         terms.push({ term: potentialTerm, definition: currentDef.join(' ').trim() });
-                    }
-                    // Process new term (handle Term1 = Term2 = Definition cases)
-                    let termPart = parts[0].trim();
-                    // Take the first term if multiple are given with '=' or '/'
-                    potentialTerm = termPart.split('/')[0].split('=')[0].trim();
-                    currentDef = [parts[1].trim()]; // Start new definition
-                } else if (potentialTerm) {
-                    // Continuation of the previous definition
-                    currentDef.push(line);
-                }
-            });
-             // Add the last term
-            if (potentialTerm) {
-                terms.push({ term: potentialTerm, definition: currentDef.join(' ').trim() });
-            }
-
-            // Filter out entries with missing term or definition
-            return terms.filter(t => t.term && t.definition);
+        function parseTerms(text) { /* ... (keep existing parseTerms function) ... */
+             const lines = text.trim().split('\n');
+             const terms = [];
+             let currentDef = [];
+             let potentialTerm = null;
+             lines.forEach(line => {
+                 line = line.trim().replace(/^•\s*/, '');
+                 if (!line) return;
+                 const parts = line.split(/\s*=\s*(.*)/s);
+                 if (parts.length > 1 && parts[1].trim() !== "") {
+                     if (potentialTerm) { terms.push({ term: potentialTerm, definition: currentDef.join(' ').trim() }); }
+                     let termPart = parts[0].trim();
+                     potentialTerm = termPart.split('/')[0].split('=')[0].trim();
+                     currentDef = [parts[1].trim()];
+                 } else if (potentialTerm) { currentDef.push(line); }
+             });
+             if (potentialTerm) { terms.push({ term: potentialTerm, definition: currentDef.join(' ').trim() }); }
+             return terms.filter(t => t.term && t.definition);
         }
 
-
-        /**
-         * Shuffles an array in place using the Fisher-Yates algorithm.
-         */
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
-            }
+        function shuffleArray(array) { /* ... (keep existing shuffleArray function) ... */
+             for (let i = array.length - 1; i > 0; i--) {
+                 const j = Math.floor(Math.random() * (i + 1));
+                 [array[i], array[j]] = [array[j], array[i]];
+             }
         }
 
         // --- Game Logic Functions ---
-
-        /**
-         * Starts or restarts the game.
-         */
         function startGame() {
             termsData = parseTerms(medicalTermsText);
-            if (termsData.length < NUM_CHOICES) {
-                 definitionTextEl.textContent = `Erro: São necessários pelo menos ${NUM_CHOICES} termos médicos no arquivo para jogar.`;
-                 optionsAreaEl.innerHTML = ''; // Clear options if error
-                 return; // Stop game initialization
-            }
+            // Filter terms that have a system mapping for the system_match challenge
+            termsWithSystems = termsData.filter(t => termToSystemMap[t.term]);
 
+            // Basic check for enough terms
+            if (termsData.length < Math.max(QUIZ_NUM_CHOICES, DRAG_DROP_PAIRS + DRAG_DROP_DISTRACTORS) || termsWithSystems.length < 1) {
+                 gameContentAreaEl.innerHTML = `<p class="text-red-600 text-center font-semibold">Erro: São necessários mais termos médicos (e mapeamento de sistemas) no arquivo para jogar.</p>`;
+                 return;
+            }
             score = 0;
-            currentQuestionIndex = 0;
-            shuffledTerms = [...termsData]; // Create a copy
+            currentRoundIndex = 0;
+            shuffledTerms = [...termsData]; // Shuffle all terms for general use
             shuffleArray(shuffledTerms);
 
-            // Reset UI elements
+            // Reset UI
             scoreEl.textContent = score;
             finalScoreAreaEl.classList.add('hidden');
-            questionAreaEl.classList.remove('hidden'); // Show question area
-            optionsAreaEl.classList.remove('hidden'); // Show options area
             feedbackTextEl.textContent = '';
             nextButtonEl.classList.add('hidden');
-            challengeIndicatorEl.textContent = ''; // Clear challenge text
+            challengeIndicatorEl.textContent = '';
+            mainCardEl.classList.remove('challenge-active'); // Remove challenge animation
 
-            displayNextQuestion();
+            // Hide all mode areas
+            quizModeAreaEl.classList.add('hidden');
+            dragDropModeAreaEl.classList.add('hidden');
+            systemMatchModeAreaEl.classList.add('hidden');
+            anamnesisOrderModeAreaEl.classList.add('hidden');
+
+            displayNextRound();
         }
 
-        /**
-         * Displays the next question or ends the game.
-         */
-        function displayNextQuestion() {
-            if (currentQuestionIndex >= shuffledTerms.length) {
-                endGame();
-                return;
+        /** Determines the mode and displays the next round */
+        function displayNextRound() {
+             // Check if enough terms remain overall
+             if (currentRoundIndex >= shuffledTerms.length && termsWithSystems.length <= currentRoundIndex) { // Adjust check
+                 endGame();
+                 return;
+             }
+
+            acceptingAnswers = true;
+            feedbackTextEl.textContent = '';
+            nextButtonEl.classList.add('hidden');
+            mainCardEl.classList.remove('challenge-active'); // Reset animation class
+
+            // Hide all mode areas
+            quizModeAreaEl.classList.add('hidden');
+            dragDropModeAreaEl.classList.add('hidden');
+            systemMatchModeAreaEl.classList.add('hidden');
+            anamnesisOrderModeAreaEl.classList.add('hidden');
+
+            // Determine if it's a challenge round
+            isChallenge = (currentRoundIndex + 1) % CHALLENGE_FREQUENCY === 0;
+            challengeIndicatorEl.textContent = isChallenge ? '✨ Rodada Desafio! ✨' : '';
+            challengeIndicatorEl.classList.toggle('challenge-indicator', isChallenge);
+            if(isChallenge) mainCardEl.classList.add('challenge-active'); // Add animation
+
+            roundInfoEl.textContent = `Rodada: ${currentRoundIndex + 1}`;
+
+            // Select Mode
+            let possibleModes = [];
+            if (isChallenge) {
+                possibleModes = [...GAME_MODES_CHALLENGE];
+                // Ensure we have terms for system match if selected
+                if (!termsWithSystems.some(t => shuffledTerms.includes(t))) { // Check if any mapped terms remain in shuffled list
+                     possibleModes = possibleModes.filter(mode => mode !== 'system_match');
+                }
+                // If only anamnesis is left as challenge, use it. If none left, fallback later.
+                if (possibleModes.length === 0) {
+                    // Fallback needed if no challenge modes possible
+                }
+            } else {
+                possibleModes = [...GAME_MODES_NORMAL];
             }
 
-            acceptingAnswers = true; // Allow answers for the new question
-            const currentQuestion = shuffledTerms[currentQuestionIndex];
+            // Simple random selection for now, can be improved with tracking
+            if (possibleModes.length > 0) {
+                 currentMode = possibleModes[Math.floor(Math.random() * possibleModes.length)];
+            } else {
+                 // Fallback if no challenge modes were possible
+                 currentMode = GAME_MODES_NORMAL[Math.floor(Math.random() * GAME_MODES_NORMAL.length)];
+                 console.log("Fallback to normal mode as no challenge modes were available/possible.");
+                 isChallenge = false; // Ensure challenge state is false if falling back
+                 challengeIndicatorEl.textContent = '';
+                 mainCardEl.classList.remove('challenge-active');
+            }
+
+
+            let modeSuccessfullyDisplayed = false;
+
+            // --- Display the selected mode ---
+            console.log(`Attempting to display round ${currentRoundIndex + 1}, mode: ${currentMode}, challenge: ${isChallenge}`); // Debugging
+
+            try {
+                switch (currentMode) {
+                    case 'quiz':
+                        if (currentRoundIndex < shuffledTerms.length) {
+                            displayQuizQuestion();
+                            quizModeAreaEl.classList.remove('hidden');
+                            modeSuccessfullyDisplayed = true;
+                        }
+                        break;
+                    case 'drag_drop':
+                         // Need DRAG_DROP_PAIRS terms starting from currentRoundIndex
+                        if (currentRoundIndex + DRAG_DROP_PAIRS <= shuffledTerms.length && termsData.length >= DRAG_DROP_PAIRS + DRAG_DROP_DISTRACTORS) {
+                            displayDragDropRound();
+                            dragDropModeAreaEl.classList.remove('hidden');
+                            modeSuccessfullyDisplayed = true;
+                        }
+                        break;
+                    case 'system_match':
+                        // Need at least one term with system mapping left
+                        if (termsWithSystems.length > 0) { // Simplified check
+                             displaySystemMatchRound();
+                             systemMatchModeAreaEl.classList.remove('hidden');
+                             modeSuccessfullyDisplayed = true;
+                         }
+                        break;
+                    case 'anamnesis_order':
+                        displayAnamnesisOrderRound();
+                        anamnesisOrderModeAreaEl.classList.remove('hidden');
+                        modeSuccessfullyDisplayed = true;
+                        break;
+                }
+            } catch (error) {
+                 console.error("Error displaying round:", error);
+                 // Attempt fallback or end game on error
+                 modeSuccessfullyDisplayed = false;
+            }
+
+
+            // --- Fallback if selected mode failed ---
+            if (!modeSuccessfullyDisplayed) {
+                 console.log(`Mode ${currentMode} failed to display, attempting fallback.`);
+                 // Try a simple quiz question as the ultimate fallback
+                 if (currentRoundIndex < shuffledTerms.length) {
+                      console.log("Fallback to Quiz mode");
+                      currentMode = 'quiz';
+                      isChallenge = false; // Reset challenge status on fallback
+                      challengeIndicatorEl.textContent = '';
+                      mainCardEl.classList.remove('challenge-active');
+                      displayQuizQuestion();
+                      quizModeAreaEl.classList.remove('hidden');
+                      modeSuccessfullyDisplayed = true;
+                 }
+            }
+
+            // --- Final Step ---
+            if (modeSuccessfullyDisplayed) {
+                currentRoundIndex++; // Increment index only if a round was successfully displayed
+            } else {
+                console.log("Ending game: Could not display any mode.");
+                endGame();
+            }
+        }
+
+
+        // --- Quiz Mode Functions ---
+        function displayQuizQuestion() { /* ... (keep existing function) ... */
+            const questionIndex = currentRoundIndex;
+            if (questionIndex >= shuffledTerms.length) { endGame(); return; }
+            const currentQuestion = shuffledTerms[questionIndex];
             currentCorrectTerm = currentQuestion.term;
-
-            // Determine if it's a challenge
-            isChallenge = (currentQuestionIndex + 1) % CHALLENGE_FREQUENCY === 0;
-            challengeIndicatorEl.textContent = isChallenge ? '✨ Pergunta Desafio! ✨' : '';
-            challengeIndicatorEl.classList.toggle('challenge-indicator', isChallenge); // Add/remove pulse class
-
-            // Display definition
             definitionTextEl.textContent = currentQuestion.definition;
-            questionInfoEl.textContent = `Pergunta: ${currentQuestionIndex + 1} / ${shuffledTerms.length}`;
-
-            // Generate choices
             const choices = [currentCorrectTerm];
             const incorrectTerms = termsData.filter(term => term.term !== currentCorrectTerm);
             shuffleArray(incorrectTerms);
-            for (let i = 0; choices.length < NUM_CHOICES && i < incorrectTerms.length; i++) {
-                choices.push(incorrectTerms[i].term);
-            }
-            shuffleArray(choices); // Shuffle the final choices
-
-            // Display choices as buttons
-            optionsAreaEl.innerHTML = ''; // Clear previous buttons
-            feedbackTextEl.textContent = ''; // Clear previous feedback
-            nextButtonEl.classList.add('hidden'); // Hide next button
-
+            for (let i = 0; choices.length < QUIZ_NUM_CHOICES && i < incorrectTerms.length; i++) { choices.push(incorrectTerms[i].term); }
+            shuffleArray(choices);
+            optionsAreaEl.innerHTML = '';
             choices.forEach(choice => {
                 const button = document.createElement('button');
                 button.textContent = choice;
-                // Tailwind classes for styling
                 button.className = 'option-button bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition duration-200 ease-in-out transform hover:scale-105';
-                button.addEventListener('click', () => handleAnswer(choice, button));
+                button.addEventListener('click', () => handleQuizAnswer(choice, button));
                 optionsAreaEl.appendChild(button);
             });
-
-            currentQuestionIndex++;
+        }
+        function handleQuizAnswer(selectedTerm, clickedButton) { /* ... (keep existing function) ... */
+            if (!acceptingAnswers) return;
+            acceptingAnswers = false;
+            const correct = selectedTerm === currentCorrectTerm;
+            const points = NORMAL_POINTS; // Base points for normal rounds
+            const pointsEarned = correct ? points : 0; // Challenges handled by specific functions now
+            score += pointsEarned;
+            scoreEl.textContent = score;
+            feedbackTextEl.textContent = correct ? `Correto! +${pointsEarned} pontos` : `Incorreto. A resposta era: ${currentCorrectTerm}`;
+            feedbackTextEl.className = correct ? 'feedback-correct text-xl font-semibold' : 'feedback-incorrect text-xl font-semibold';
+            Array.from(optionsAreaEl.children).forEach(button => {
+                button.disabled = true;
+                button.classList.remove('hover:bg-indigo-600', 'hover:scale-105');
+                if (button.textContent === currentCorrectTerm) { button.classList.add('correct-answer', 'correct-answer-bg'); }
+                else if (button === clickedButton) { button.classList.add('incorrect-answer', 'incorrect-answer-bg'); }
+                else { button.style.opacity = '0.6'; }
+            });
+            setTimeout(() => { nextButtonEl.classList.remove('hidden'); }, 1000);
         }
 
-        /**
-         * Handles the user's answer selection.
-         */
-        function handleAnswer(selectedTerm, clickedButton) {
-            if (!acceptingAnswers) return; // Don't process if already answered
-            acceptingAnswers = false; // Prevent further clicks
+        // --- Term -> Definition Drag/Drop Functions ---
+        function displayDragDropRound() { /* ... (keep existing function) ... */
+             const startIndex = currentRoundIndex;
+             currentDragDropPairs = shuffledTerms.slice(startIndex, startIndex + DRAG_DROP_PAIRS);
+             if (currentDragDropPairs.length < DRAG_DROP_PAIRS) { endGame(); return; } // Should be caught earlier, but safety
+             const correctTerms = currentDragDropPairs.map(pair => pair.term);
+             const definitions = currentDragDropPairs.map(pair => pair.definition);
+             const potentialDistractors = termsData.filter(term => !correctTerms.includes(term.term));
+             shuffleArray(potentialDistractors);
+             const distractors = potentialDistractors.slice(0, DRAG_DROP_DISTRACTORS).map(d => d.term);
+             const termsForBank = [...correctTerms, ...distractors];
+             shuffleArray(termsForBank);
+             const definitionsShuffled = [...definitions];
+             shuffleArray(definitionsShuffled);
+             definitionsContainerEl.innerHTML = '';
+             termsBankEl.innerHTML = '';
+             droppedItems = {};
+             checkDragDropButtonEl.classList.add('hidden');
+             definitionsShuffled.forEach((definition, index) => {
+                 const originalPair = currentDragDropPairs.find(pair => pair.definition === definition);
+                 const correctTermForThisDef = originalPair ? originalPair.term : 'ERRO_NO_TERMO';
+                 const div = document.createElement('div');
+                 div.className = 'flex flex-col sm:flex-row items-center gap-3 bg-indigo-50 p-3 rounded-lg shadow-sm';
+                 const p = document.createElement('p');
+                 p.textContent = definition;
+                 p.className = 'flex-grow text-gray-700 text-center sm:text-left';
+                 const dropZone = document.createElement('div');
+                 dropZone.id = `dropzone-def-${index}`; // Unique ID prefix
+                 dropZone.dataset.correctTerm = correctTermForThisDef;
+                 dropZone.className = 'drop-zone drop-zone-def w-full sm:w-48 h-16 rounded-md bg-indigo-100 p-2 text-gray-500 text-sm';
+                 dropZone.textContent = 'Solte aqui';
+                 dropZone.addEventListener('dragover', handleDragOver);
+                 dropZone.addEventListener('dragleave', handleDragLeave);
+                 dropZone.addEventListener('drop', handleTermDefDrop); // Use specific handler
+                 div.appendChild(p);
+                 div.appendChild(dropZone);
+                 definitionsContainerEl.appendChild(div);
+             });
+             termsForBank.forEach((term, index) => {
+                 const termEl = document.createElement('div');
+                 termEl.id = `term-bank-${index}`; // Unique ID prefix
+                 termEl.textContent = term;
+                 termEl.draggable = true;
+                 termEl.className = 'draggable-item term-bank-item font-semibold py-2 px-4 rounded-md shadow cursor-grab transition duration-150';
+                 termEl.addEventListener('dragstart', handleDragStart);
+                 termEl.addEventListener('dragend', handleDragEnd);
+                 termsBankEl.appendChild(termEl);
+             });
+        }
+        function handleTermDefDrop(event) { /* ... (keep existing drop logic, maybe rename) ... */
+            event.preventDefault();
+            const draggedTermId = event.dataTransfer.getData('text/plain');
+            const currentDraggedEl = draggedElement || document.getElementById(draggedTermId);
+            const dropZoneEl = event.currentTarget;
+            dropZoneEl.classList.remove('drag-over');
+            if (!currentDraggedEl) return;
+            const existingTermEl = dropZoneEl.querySelector('.draggable-item');
+            if (existingTermEl) {
+                if (currentDraggedEl.classList.contains('term-bank-item')) {
+                    termsBankEl.appendChild(existingTermEl);
+                    existingTermEl.classList.remove('dropped-term');
+                    dropZoneEl.innerHTML = '';
+                    dropZoneEl.appendChild(currentDraggedEl);
+                    currentDraggedEl.classList.add('dropped-term');
+                } else {
+                     const originZone = currentDraggedEl.parentElement;
+                     originZone.appendChild(existingTermEl);
+                     dropZoneEl.appendChild(currentDraggedEl);
+                }
+            } else {
+                 if (!currentDraggedEl.classList.contains('term-bank-item')) {
+                     const originZone = currentDraggedEl.parentElement;
+                     originZone.innerHTML = 'Solte aqui';
+                     originZone.classList.remove('dropped');
+                 }
+                 dropZoneEl.innerHTML = '';
+                 dropZoneEl.appendChild(currentDraggedEl);
+                 currentDraggedEl.classList.add('dropped-term');
+            }
+            dropZoneEl.classList.add('dropped');
+            currentDraggedEl.classList.remove('dragging-source');
+            currentDraggedEl.style.opacity = '1';
+            droppedItems = {};
+            document.querySelectorAll('.drop-zone-def').forEach(zone => {
+                const termInside = zone.querySelector('.draggable-item');
+                if (termInside) { droppedItems[zone.id] = termInside.id; }
+                 zone.classList.remove('correct-drop', 'incorrect-drop');
+            });
+            const allZones = definitionsContainerEl.querySelectorAll('.drop-zone-def');
+            if (Object.keys(droppedItems).length === allZones.length) { checkDragDropButtonEl.classList.remove('hidden'); }
+            else { checkDragDropButtonEl.classList.add('hidden'); }
+            draggedElement = null;
+        }
+        checkDragDropButtonEl.addEventListener('click', checkTermDefAnswers); // Use specific handler
+        function checkTermDefAnswers() { /* ... (keep existing check logic, maybe rename) ... */
+             if (!acceptingAnswers) return;
+             acceptingAnswers = false;
+             checkDragDropButtonEl.disabled = true;
+             let allCorrect = true;
+             let correctCount = 0;
+             const dropZones = definitionsContainerEl.querySelectorAll('.drop-zone-def');
+             dropZones.forEach(zone => {
+                 const termInside = zone.querySelector('.draggable-item');
+                 zone.classList.remove('correct-drop', 'incorrect-drop');
+                 if (!termInside) { allCorrect = false; zone.classList.add('incorrect-drop'); return; }
+                 const droppedTermText = termInside.textContent;
+                 const correctTermText = zone.dataset.correctTerm;
+                 if (droppedTermText === correctTermText) { zone.classList.add('correct-drop'); correctCount++; }
+                 else { zone.classList.add('incorrect-drop'); allCorrect = false; }
+                 termInside.draggable = false; termInside.style.cursor = 'default';
+             });
+             termsBankEl.querySelectorAll('.draggable-item').forEach(term => { term.draggable = false; term.style.opacity = '0.5'; term.style.cursor = 'default'; });
+             const points = NORMAL_POINTS; // Base points
+             const pointsEarned = allCorrect ? points : 0; // No challenge multiplier for normal D&D
+             score += pointsEarned;
+             scoreEl.textContent = score;
+             feedbackTextEl.textContent = allCorrect ? `Perfeito! +${pointsEarned} pontos` : `Algumas respostas estão incorretas.`;
+             feedbackTextEl.className = allCorrect ? 'feedback-correct text-xl font-semibold' : 'feedback-incorrect text-xl font-semibold';
+             setTimeout(() => { nextButtonEl.classList.remove('hidden'); checkDragDropButtonEl.disabled = false; checkDragDropButtonEl.classList.add('hidden'); }, 1500);
+         }
 
-            const correct = selectedTerm === currentCorrectTerm;
-            const pointsEarned = correct ? (isChallenge ? CHALLENGE_POINTS : NORMAL_POINTS) : 0;
+        // --- System Match Challenge Functions ---
+        function displaySystemMatchRound() {
+             // Find a term with a system mapping from the *remaining* shuffled terms
+             let termForChallenge = null;
+             for (let i = currentRoundIndex; i < shuffledTerms.length; i++) {
+                 if (termToSystemMap[shuffledTerms[i].term]) {
+                     termForChallenge = shuffledTerms[i];
+                     // Optional: Remove this term from future rounds? Or just track index?
+                     // For now, just use it. Risk of repetition if not removed/tracked.
+                     break;
+                 }
+             }
+             // Fallback if no suitable term found in remaining list (should be caught earlier)
+             if (!termForChallenge) {
+                 console.error("Could not find a term with system mapping for challenge.");
+                 // Attempt fallback to another mode?
+                 currentRoundIndex--; // Decrement to retry round selection logic
+                 displayNextRound();
+                 return;
+             }
 
-            // Update score
+             currentSystemMatch = {
+                 term: termForChallenge.term,
+                 correctSystem: termToSystemMap[termForChallenge.term] // Can be "System1/System2"
+             };
+             systemMatchDropped = false; // Reset drop state
+
+             // Prepare options
+             const correctSystems = currentSystemMatch.correctSystem.split('/'); // Handle multiple correct systems
+             const choices = [...correctSystems]; // Start with the correct one(s)
+
+             // Get distractors (different systems)
+             const distractors = allBodySystems.filter(sys => !choices.includes(sys));
+             shuffleArray(distractors);
+             for (let i = 0; choices.length < SYSTEM_MATCH_OPTIONS && i < distractors.length; i++) {
+                 choices.push(distractors[i]);
+             }
+             shuffleArray(choices); // Shuffle final system options
+
+             // Populate HTML
+             systemMatchTermEl.textContent = currentSystemMatch.term;
+             systemMatchTermEl.id = 'system-match-drag-term'; // Set specific ID
+             systemMatchTermEl.draggable = true; // Make it draggable
+             systemMatchTermEl.addEventListener('dragstart', handleDragStart);
+             systemMatchTermEl.addEventListener('dragend', handleDragEnd);
+
+             systemDropZonesEl.innerHTML = '';
+             choices.forEach((system, index) => {
+                 const zone = document.createElement('div');
+                 zone.id = `system-zone-${index}`;
+                 zone.dataset.systemName = system; // Store the system name this zone represents
+                 zone.className = 'drop-zone system-drop-zone w-full rounded-md bg-indigo-100 p-3 text-gray-700 font-medium';
+                 zone.textContent = system; // Display system name
+
+                 zone.addEventListener('dragover', handleDragOver);
+                 zone.addEventListener('dragleave', handleDragLeave);
+                 zone.addEventListener('drop', handleSystemDrop); // Specific handler
+                 systemDropZonesEl.appendChild(zone);
+             });
+        }
+
+        function handleSystemDrop(event) {
+            event.preventDefault();
+            if (systemMatchDropped) return; // Allow only one drop
+
+            const draggedTermId = event.dataTransfer.getData('text/plain');
+            const currentDraggedEl = draggedElement || document.getElementById(draggedTermId);
+            const dropZoneEl = event.currentTarget;
+            dropZoneEl.classList.remove('drag-over');
+
+            if (!currentDraggedEl || currentDraggedEl.id !== 'system-match-drag-term') return; // Ensure correct item is dropped
+
+            // Move term visually into the zone
+            dropZoneEl.appendChild(currentDraggedEl);
+            currentDraggedEl.draggable = false; // Disable further dragging
+            currentDraggedEl.style.cursor = 'default';
+            currentDraggedEl.classList.remove('dragging-source');
+            dropZoneEl.classList.add('dropped');
+            systemMatchDropped = true; // Mark as dropped
+
+            // Check Answer Immediately
+            checkSystemMatchAnswer(dropZoneEl);
+            draggedElement = null; // Clear reference
+        }
+
+        function checkSystemMatchAnswer(droppedZoneEl) {
+            if (!acceptingAnswers) return;
+            acceptingAnswers = false;
+
+            const droppedSystem = droppedZoneEl.dataset.systemName;
+            const correctSystems = currentSystemMatch.correctSystem.split('/'); // Handle multiple possibilities
+            const isCorrect = correctSystems.includes(droppedSystem);
+
+            const points = CHALLENGE_ROUND_POINTS; // Base points for challenge
+            const pointsEarned = isCorrect ? points : 0;
             score += pointsEarned;
             scoreEl.textContent = score;
 
-            // Provide feedback
-            feedbackTextEl.textContent = correct ? `Correto! +${pointsEarned} pontos` : `Incorreto. A resposta era: ${currentCorrectTerm}`;
-            feedbackTextEl.className = correct ? 'text-green-600 text-xl font-semibold' : 'text-red-600 text-xl font-semibold';
+            feedbackTextEl.textContent = isCorrect ? `Correto! +${pointsEarned} pontos` : `Incorreto. A resposta correta era: ${currentSystemMatch.correctSystem}`;
+            feedbackTextEl.className = isCorrect ? 'feedback-correct text-xl font-semibold' : 'feedback-incorrect text-xl font-semibold';
 
-            // Visually highlight buttons
-            Array.from(optionsAreaEl.children).forEach(button => {
-                button.disabled = true; // Disable all buttons
-                if (button.textContent === currentCorrectTerm) {
-                    button.classList.add('correct-answer'); // Highlight correct one green
-                } else if (button === clickedButton) {
-                    button.classList.add('incorrect-answer'); // Highlight selected incorrect one red
+            // Visual feedback on zones
+            document.querySelectorAll('.system-drop-zone').forEach(zone => {
+                 const system = zone.dataset.systemName;
+                 if (correctSystems.includes(system)) {
+                      zone.classList.add('correct-drop');
+                 } else if (zone === droppedZoneEl) { // Only mark the wrongly chosen one red
+                      zone.classList.add('incorrect-drop');
+                 }
+                 // Optionally disable hover effects on all zones after drop
+                 zone.removeEventListener('dragover', handleDragOver);
+                 zone.removeEventListener('dragleave', handleDragLeave);
+                 zone.removeEventListener('drop', handleSystemDrop);
+            });
+
+
+            setTimeout(() => { nextButtonEl.classList.remove('hidden'); }, 1500);
+        }
+
+
+        // --- Anamnesis Order Challenge Functions ---
+        let dragStartIndex; // To track original index for reordering
+
+        function displayAnamnesisOrderRound() {
+             anamnesisListEl.innerHTML = ''; // Clear previous list
+             checkAnamnesisButtonEl.disabled = false; // Ensure button is enabled
+
+             const shuffledAnamnesis = [...anamnesisOrderCorrect];
+             shuffleArray(shuffledAnamnesis); // Shuffle for the user
+
+             shuffledAnamnesis.forEach((itemText, index) => {
+                 const listItem = document.createElement('li');
+                 listItem.id = `anamnesis-item-${index}`;
+                 listItem.className = 'anamnesis-item draggable-item p-3 bg-gray-100 rounded shadow-sm';
+                 listItem.draggable = true;
+                 listItem.textContent = itemText;
+
+                 // Add event listeners for reordering
+                 listItem.addEventListener('dragstart', handleAnamnesisDragStart);
+                 listItem.addEventListener('dragend', handleAnamnesisDragEnd);
+                 listItem.addEventListener('dragover', handleAnamnesisDragOver);
+                 listItem.addEventListener('drop', handleAnamnesisDrop);
+                 // Optional: Add dragenter/dragleave for better visual feedback if needed
+
+                 anamnesisListEl.appendChild(listItem);
+             });
+        }
+
+        function handleAnamnesisDragStart(event) {
+             draggedElement = event.target; // Store the item being dragged
+             event.dataTransfer.setData('text/plain', event.target.id);
+             event.dataTransfer.effectAllowed = 'move';
+             // Add visual style to the dragged item (optional)
+             setTimeout(() => event.target.classList.add('dragging-source'), 0);
+        }
+
+        function handleAnamnesisDragEnd(event) {
+             // Remove visual styles
+             event.target.classList.remove('dragging-source');
+             document.querySelectorAll('.anamnesis-item').forEach(item => item.classList.remove('drag-over-item'));
+             draggedElement = null;
+        }
+
+        function handleAnamnesisDragOver(event) {
+             event.preventDefault();
+             event.dataTransfer.dropEffect = 'move';
+
+             const targetItem = event.target.closest('.anamnesis-item');
+             if (!targetItem || targetItem === draggedElement) return;
+
+             // Remove indicator from other items
+             document.querySelectorAll('.anamnesis-item').forEach(item => item.classList.remove('drag-over-item'));
+
+             // Add indicator to the target item
+             targetItem.classList.add('drag-over-item');
+        }
+
+
+        function handleAnamnesisDrop(event) {
+            event.preventDefault();
+            const targetItem = event.target.closest('.anamnesis-item');
+            targetItem.classList.remove('drag-over-item'); // Remove indicator
+
+            if (!draggedElement || targetItem === draggedElement) {
+                return; // Don't drop on itself
+            }
+
+            // Determine where to insert: before or after the target item
+            const targetRect = targetItem.getBoundingClientRect();
+            const mouseY = event.clientY;
+            const isAfter = mouseY > targetRect.top + targetRect.height / 2;
+
+            if (isAfter) {
+                targetItem.parentNode.insertBefore(draggedElement, targetItem.nextSibling);
+            } else {
+                targetItem.parentNode.insertBefore(draggedElement, targetItem);
+            }
+        }
+
+        checkAnamnesisButtonEl.addEventListener('click', checkAnamnesisOrder);
+
+        function checkAnamnesisOrder() {
+            if (!acceptingAnswers) return;
+            acceptingAnswers = false;
+            checkAnamnesisButtonEl.disabled = true;
+
+            const currentOrderItems = anamnesisListEl.querySelectorAll('.anamnesis-item');
+            let isOrderCorrect = true;
+
+            currentOrderItems.forEach((item, index) => {
+                item.draggable = false; // Disable dragging after check
+                item.style.cursor = 'default';
+                item.classList.remove('correct-order', 'incorrect-order'); // Clear previous feedback
+
+                if (item.textContent !== anamnesisOrderCorrect[index]) {
+                    isOrderCorrect = false;
+                    item.classList.add('incorrect-order');
                 } else {
-                     button.style.opacity = '0.6'; // Dim other incorrect buttons
+                    item.classList.add('correct-order');
                 }
             });
 
-            // Show next button after a short delay
+            const points = CHALLENGE_ROUND_POINTS; // Base points for challenge
+            const pointsEarned = isOrderCorrect ? points : 0;
+            score += pointsEarned;
+            scoreEl.textContent = score;
+
+            feedbackTextEl.textContent = isOrderCorrect ? `Ordem Perfeita! +${pointsEarned} pontos` : `A ordem está incorreta. Estude a sequência da anamnese!`;
+            feedbackTextEl.className = isOrderCorrect ? 'feedback-correct text-xl font-semibold' : 'feedback-incorrect text-xl font-semibold';
+
             setTimeout(() => {
-                 nextButtonEl.classList.remove('hidden');
-            }, 1000); // Show after 1 second
+                nextButtonEl.classList.remove('hidden');
+                checkAnamnesisButtonEl.disabled = false; // Re-enable for potential future rounds
+            }, 1500);
         }
 
-         /**
-         * Ends the game and displays the final score.
-         */
+
+        // --- End Game Function ---
         function endGame() {
-            questionAreaEl.classList.add('hidden'); // Hide question area
-            optionsAreaEl.classList.add('hidden'); // Hide options
-            feedbackTextEl.textContent = ''; // Clear feedback
-            nextButtonEl.classList.add('hidden'); // Hide next button
-            challengeIndicatorEl.textContent = ''; // Clear challenge text
+             // Hide all game mode areas
+             quizModeAreaEl.classList.add('hidden');
+             dragDropModeAreaEl.classList.add('hidden');
+             systemMatchModeAreaEl.classList.add('hidden');
+             anamnesisOrderModeAreaEl.classList.add('hidden');
 
-            finalScoreEl.textContent = score;
-            finalScoreAreaEl.classList.remove('hidden'); // Show final score section
+             feedbackTextEl.textContent = '';
+             nextButtonEl.classList.add('hidden');
+             challengeIndicatorEl.textContent = '';
+             mainCardEl.classList.remove('challenge-active'); // Ensure animation stops
+
+             finalScoreEl.textContent = score;
+             finalScoreAreaEl.classList.remove('hidden');
         }
 
-        // --- Event Listeners ---
-        nextButtonEl.addEventListener('click', displayNextQuestion);
+        // --- Global Event Listeners ---
+        nextButtonEl.addEventListener('click', displayNextRound);
         restartButtonEl.addEventListener('click', startGame);
 
         // --- Initial Game Start ---
-        // Wait for the DOM to be fully loaded before starting
         document.addEventListener('DOMContentLoaded', startGame);
 
     </script>
